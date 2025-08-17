@@ -1,5 +1,6 @@
 from scipy.sparse import csr_array
 from scipy.sparse.csgraph import maximum_bipartite_matching
+from overlap_graph import find_max_overlap
 
 
 # returns a dictionary where each key is a node u in the independent set and the corresponding value is a list of nodes from the IS such
@@ -42,7 +43,7 @@ def find_orders(indpt_set, bridges):
 def assemble(graph, indpt_set, complement):
     bridges = find_connections(graph, indpt_set, complement)
     orders = find_orders(indpt_set, bridges)
-    print("Orders:\n", orders)
+    print("Orders:\n", orders, end="\n\n")
     
     n = len(orders[0])
     assembled_dna = []
@@ -67,7 +68,7 @@ def assemble(graph, indpt_set, complement):
 
         assembled_dna.append(find_seq(order, matching, complement))
 
-    print("Matchings:\n", matchings)
+    print("Matchings:\n", matchings, end="\n\n")
 
     return assembled_dna
 
@@ -86,3 +87,53 @@ def find_seq(order, matching, complement):
     seq.append(order[i])
 
     return seq
+
+    
+# returns the dna sequence as a string assembled from the fragments
+def assemble_dna(fragments, seq, rc_frags, min_ovl):
+    assembled_dna = ""
+    n = len(seq)
+
+    # first round requires overlap3 to decide the sense
+    frag1 = fragments[seq[0]]
+    frag2 = fragments[seq[1]]
+    overlap1 = find_max_overlap(frag1, frag2, min_ovl)
+    overlap2 = find_max_overlap(frag1, rc_frags[seq[1]], min_ovl)
+    overlap3 = find_max_overlap(rc_frags[seq[0]], frag2, min_ovl)
+    if overlap1 > overlap2:
+        if overlap1 > overlap3:
+            assembled_dna += frag1
+            assembled_dna += frag2[overlap1:] 
+            frag1 = frag2  
+        else:
+            assembled_dna += rc_frags[seq[0]]
+            assembled_dna += frag2[overlap3:]
+            frag1 = frag2
+    else:
+        if overlap2 > overlap3:
+            assembled_dna += frag1
+            assembled_dna += rc_frags[seq[1]][overlap2:]
+            frag1 = rc_frags[seq[1]]
+        else:
+            assembled_dna += rc_frags[seq[0]]
+            assembled_dna += frag2[overlap3:]
+            frag1 = frag2
+
+    i = 2
+    while i < n:  
+        frag2 = fragments[seq[i]]
+
+        overlap1 = find_max_overlap(frag1, frag2, min_ovl)
+        overlap2 = find_max_overlap(frag1, rc_frags[seq[i]], min_ovl)
+        # print(seq[i - 1], seq[i], overlap1, overlap2)
+
+        if overlap1 > overlap2:
+            assembled_dna += frag2[overlap1:]
+            frag1 = frag2
+        else:
+            assembled_dna += rc_frags[seq[i]][overlap2:]
+            frag1 = rc_frags[seq[i]]
+
+        i += 1
+        
+    return assembled_dna

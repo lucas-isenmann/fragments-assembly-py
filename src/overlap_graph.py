@@ -20,11 +20,15 @@ def complement(frag):
             comp += "C"
     return comp
 
+# finds reverse complement of fragment
+def reverse_complement(frag):
+    return complement(reverse_frag(frag))
+
 # returns a list of the reverse complement of each fragment 
 def find_RC_fragments(fragments):
     rc_frags = []
     for frag in fragments:
-        rc_frags.append(complement(reverse_frag(frag)))
+        rc_frags.append(reverse_complement(frag))
 
     return rc_frags
 
@@ -82,7 +86,8 @@ def make_graph(fragments, minOvl):
                 overlap1 = find_max_overlap(fragments[i], fragments[j], minOvl)
                 overlap2 = find_max_overlap(fragments[i], rc_frags[j], minOvl)
                 overlap3 = find_max_overlap(rc_frags[i], fragments[j], minOvl)
-                overlap = max(overlap1, overlap2, overlap3)
+                overlap4 = find_max_overlap(rc_frags[i], rc_frags[j], minOvl)
+                overlap = max(overlap1, overlap2, overlap3, overlap4)
             
                 if (overlap >= minOvl):
                     print("\rAdding " + str(j) + " to " + str(i), end='')
